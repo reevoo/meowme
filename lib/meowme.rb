@@ -5,26 +5,29 @@ require "json"
 
 configure do
   set :cats, YAML.load(open(File.expand_path("assets/cats.yml", __dir__)))
+  set :cute, YAML.load(open(File.expand_path("assets/cute.yml", __dir__)))
 end
 
-def random(count = 5)
+def random(count = 5, type)
   pics = Set.new
-  pics << settings.cats.sample while pics.size < count
+  pics << settings.public_send(type).sample while pics.size < count
   pics
 end
 
-get "/bomb" do
-  content_type :json
-  count = Integer(params[:count] || 5)
-  { cats: random(count).to_a }.to_json
-end
+[:cats, :cute].each do |type|
+  get "/#{type}/bomb" do
+    content_type :json
+    count = Integer(params[:count] || 5)
+    { cats: random(count, type).to_a }.to_json
+  end
 
-get "/random" do
-  content_type :json
-  { cat: random(1).first }.to_json
-end
+  get "/#{type}/random" do
+    content_type :json
+    { cat: random(1, type).first }.to_json
+  end
 
-get "/count" do
-  content_type :json
-  { cat_count: settings.cats.size }.to_json
+  get "/#{type}/count" do
+    content_type :json
+    { cat_count: settings.public_send(type).size }.to_json
+  end
 end

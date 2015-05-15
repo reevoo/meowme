@@ -5,31 +5,43 @@ require "nokogiri"
 require "open-uri"
 require "yaml"
 
-SOURCE = "http://catcatcatcatcatcatcatcatcatcats.tumblr.com/api/read"
 
 class Dumper
   attr_reader :pics
 
-  def initialize
+  SOURCES = {
+    "cats" => "http://catcatcatcatcatcatcatcatcatcats.tumblr.com/api/read",
+    "cute" => "http://babyanimalposts.tumblr.com/api/read",
+  }
+
+  def self.dump
+    SOURCES.each do |name, source|
+      new(name, source).dump
+    end
+  end
+
+  def initialize(name, source)
     @pics = []
+    @source = source
+    @name = name
   end
 
   def dump
     pics.concat(page) until done?
-    open(File.expand_path("../lib/assets/cats.yml", __dir__), "w") { |f|
+    open(File.expand_path("../lib/assets/#{@name}.yml", __dir__), "w") { |f|
       f << YAML.dump(pics)
     }
   end
 
   def total_pics
     @total_posts ||= begin
-                       doc = Nokogiri::XML(open(SOURCE))
+                       doc = Nokogiri::XML(open(@source))
                        Integer(doc.search("posts").first["total"])
                      end
   end
 
   def page
-    doc = Nokogiri::XML(open("#{SOURCE}?start=#{pics.size}"))
+    doc = Nokogiri::XML(open("#{@source}?start=#{pics.size}"))
     doc.search("post photo-url").select { |pic|
       pic["max-width"] == "1280"
     }.map(&:text)
@@ -40,4 +52,4 @@ class Dumper
   end
 end
 
-Dumper.new.dump
+Dumper.dump
